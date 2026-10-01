@@ -123,9 +123,12 @@ const articles = {
 
 // ── ARTICLE OVERLAY ───────────────────────────────────────────────────────────
 
+let lastFocus = null;
+
 function openArticle(id) {
   const art = articles[id];
   if (!art) return;
+  lastFocus = document.activeElement;
 
   const tagsHtml = art.tags
     .map(t => `<span class="article-tag">${t}</span>`)
@@ -149,7 +152,7 @@ function openArticle(id) {
       <span class="article-tag type">${art.type}</span>
       ${tagsHtml}
     </div>
-    <div class="article-title">${art.title}</div>
+    <div class="article-title" id="articleTitle">${art.title}</div>
     ${sectionsHtml}
     <div class="article-section">
       <h3>Tech Stack</h3>
@@ -161,6 +164,9 @@ function openArticle(id) {
   overlay.classList.add('active');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  overlay.scrollTop = 0;
+  const closeBtn = overlay.querySelector('.article-close');
+  if (closeBtn) closeBtn.focus();
 }
 
 function closeArticle() {
@@ -168,6 +174,7 @@ function closeArticle() {
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
 }
 
 
@@ -175,14 +182,54 @@ function closeArticle() {
 
 function initTabs() {
   document.querySelectorAll('[data-tabs]').forEach(group => {
-    const tabs = group.querySelectorAll('.tab');
-    const panels = group.querySelectorAll('.tab-panel');
+    const list = group.querySelector('.tab-list');
+    const tabs = Array.from(group.querySelectorAll('.tab'));
+    const panels = Array.from(group.querySelectorAll('.tab-panel'));
+
     tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.toggle('active', t === tab));
-        panels.forEach(p => p.classList.toggle('active', p.id === tab.dataset.tab));
+      const panel = document.getElementById(tab.dataset.tab);
+      tab.id = tab.id || 'tab-' + tab.dataset.tab;
+      tab.setAttribute('aria-controls', tab.dataset.tab);
+      if (panel) {
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-labelledby', tab.id);
+      }
+    });
+
+    function select(tab, focus) {
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach(p => p.classList.toggle('active', p.id === tab.dataset.tab));
+      if (focus) tab.focus();
+      tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(tab, false));
+      tab.addEventListener('keydown', e => {
+        let n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (e.key === 'Home') n = tabs[0];
+        if (e.key === 'End') n = tabs[tabs.length - 1];
+        if (n) { e.preventDefault(); select(n, true); }
       });
     });
+
+    select(tabs.find(t => t.classList.contains('active')) || tabs[0], false);
+
+    // fade hint at the right edge while more tabs are scrolled out of view
+    function hint() {
+      const more = list.scrollWidth - list.clientWidth - list.scrollLeft > 4;
+      list.classList.toggle('has-more', more);
+    }
+    list.addEventListener('scroll', hint, { passive: true });
+    window.addEventListener('resize', hint);
+    hint();
   });
 }
 
