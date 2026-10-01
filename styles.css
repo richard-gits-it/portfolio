@@ -67,7 +67,7 @@ section { margin-bottom: 56px; }
 }
 
 .avatar { width: 100%; max-width: 260px; }
-.avatar svg { display: block; width: 100%; height: auto; }
+.avatar img { display: block; width: 100%; height: auto; }
 
 .about-text h2 {
   font-size: 24px;
