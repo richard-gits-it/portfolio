@@ -1,6 +1,30 @@
 // ── PROJECT ARTICLE DATA ──────────────────────────────────────────────────────
 
 const articles = {
+  altf4: {
+    type: 'FEATURED CAPSTONE',
+    tags: ['Active Directory', 'Windows Server', 'Security'],
+    title: 'ALTF4.local: Enterprise IT Capstone',
+    sections: [
+      {
+        heading: 'Overview',
+        content: `<p>Enterprise-style capstone project focused on hardening and modernizing a Windows Server and Active Directory environment.</p>`
+      },
+      {
+        heading: 'What I Did',
+        content: `<ul>
+          <li>Hardened Active Directory with Semperis DSP, remediating key vulnerabilities and improving the security score from 84% to 92%</li>
+          <li>Migrated DNS from Windows Server 2012 R2 to 2022 with zero downtime</li>
+          <li>Automated DHCP configuration backups with PowerShell</li>
+          <li>Deployed a Read-Only Domain Controller (RODC)</li>
+          <li>Enforced Group Policy and AppLocker policies</li>
+          <li>Provisioned Active Directory users in bulk from CSV</li>
+        </ul>`
+      }
+    ],
+    stack: ['Windows Server 2022', 'Active Directory', 'Semperis DSP', 'Group Policy', 'AppLocker', 'PowerShell', 'RODC']
+  },
+
   homelab: {
     type: 'FEATURED LAB PROJECT',
     tags: ['Windows Server', 'Active Directory', 'Networking'],
@@ -135,18 +159,60 @@ function openArticle(id) {
 
   const overlay = document.getElementById('articleOverlay');
   overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 
 function closeArticle() {
-  document.getElementById('articleOverlay').classList.remove('active');
+  const overlay = document.getElementById('articleOverlay');
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
+}
+
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+
+function initTabs() {
+  document.querySelectorAll('[data-tabs]').forEach(group => {
+    const tabs = group.querySelectorAll('.tab');
+    const panels = group.querySelectorAll('.tab-panel');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.toggle('active', t === tab));
+        panels.forEach(p => p.classList.toggle('active', p.id === tab.dataset.tab));
+      });
+    });
+  });
+}
+
+
+// ── SIDE OUTLINE (highlights current section) ─────────────────────────────────
+
+function initToc() {
+  const links = Array.from(document.querySelectorAll('.toc a'));
+  const targets = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+
+  function update() {
+    const y = window.scrollY + window.innerHeight * 0.3;
+    let current = targets[0];
+    targets.forEach(t => { if (t.offsetTop <= y) current = t; });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + current.id));
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
 }
 
 
 // ── EVENT LISTENERS ───────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  initToc();
+
   // Close overlay when clicking the backdrop
   document.getElementById('articleOverlay').addEventListener('click', function (e) {
     if (e.target === this) closeArticle();
